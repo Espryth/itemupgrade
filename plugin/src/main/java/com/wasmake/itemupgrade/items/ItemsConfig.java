@@ -5,28 +5,25 @@ import org.bukkit.inventory.ItemStack;
 import java.util.List;
 import java.util.Map;
 import org.spongepowered.configurate.objectmapping.ConfigSerializable;
+import org.spongepowered.configurate.objectmapping.meta.Setting;
 
 @ConfigSerializable
 public class ItemsConfig {
-    public ItemStack fragItem;
-    public Map<Integer, List<ItemUpgradeConfig>> items;
+    @Setting("frag-item")
+    private ItemStack fragItem = null;
 
-    public ItemsConfig() {}
+    private Map<String, Map<String, ItemUpgrade>> items = Map.of();
 
     public ItemStack fragItem() {
         return fragItem;
     }
 
-    public void setItems(Map<Integer, List<ItemUpgradeConfig>> items) {
-        this.items = items;
-    }
-
-    public Map<Integer, List<ItemUpgradeConfig>> items() {
+    public Map<String, Map<String, ItemUpgrade>> items() {
         return items == null ? Map.of() : items;
     }
 
-    public void setFragItem(ItemStack fragItem) {
-        this.fragItem = fragItem;
+    public Map<String, ItemUpgrade> upgrades(final int id) {
+        return items == null ? Map.of() : items.getOrDefault(String.valueOf(id), Map.of());
     }
 
 }

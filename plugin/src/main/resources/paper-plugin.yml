@@ -1,4 +1,4 @@
-main: 'com.wasmake.itemupgrade.ItemUpgrade'
+main: 'com.wasmake.itemupgrade.ItemUpgradePlugin'
 name: 'ItemUpgrade'
 version: '1.0.0'
 description: 'ItemUpgrade plugin for Paper'

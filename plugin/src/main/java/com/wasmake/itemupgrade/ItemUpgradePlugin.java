@@ -2,14 +2,14 @@ package com.wasmake.itemupgrade;
 
 import com.wasmake.itemupgrade.cmd.ItemUpgradeCmd;
 import com.wasmake.itemupgrade.command.CommandManager;
+import com.wasmake.itemupgrade.items.ItemManager;
 import com.wasmake.itemupgrade.serializer.ComponentSerializer;
 import com.wasmake.itemupgrade.serializer.ItemStackSerializer;
 import com.wasmake.itemupgrade.items.ItemsConfig;
 import com.wasmake.itemupgrade.listener.ItemListener;
-import com.wasmake.itemupgrade.timedevent.TimedEventManager;
+import com.wasmake.itemupgrade.util.ThrowingConsumer;
 import java.io.File;
 import java.io.IOException;
-import java.util.function.Consumer;
 import net.kyori.adventure.text.Component;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -20,9 +20,8 @@ import org.spongepowered.configurate.ConfigurationOptions;
 import org.spongepowered.configurate.serialize.TypeSerializerCollection;
 import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
-public class ItemUpgrade extends JavaPlugin {
+public class ItemUpgradePlugin extends JavaPlugin {
 
-    private static ItemUpgrade instance;
     private CommandManager commandManager;
     private YamlConfigurationLoader configurationLoader;
 
@@ -31,8 +30,6 @@ public class ItemUpgrade extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        // Plugin startup logic
-        instance = this;
 
         final var file = new File(getDataFolder(), "items.yml");
 
@@ -59,15 +56,14 @@ public class ItemUpgrade extends JavaPlugin {
             throw new RuntimeException(e);
         }
 
-        this.commandManager = new CommandManager(this);
+        final var itemManager = new ItemManager(this);
 
-        this.commandManager.addClassCommand(new ItemUpgradeCmd());
+        this.commandManager = new CommandManager(this);
+        this.commandManager.addClassCommand(new ItemUpgradeCmd(itemManager));
         this.commandManager.registerCommands();
 
-        new TimedEventManager();
-
         // Register event listener
-        getServer().getPluginManager().registerEvents(new ItemListener(), this);
+        getServer().getPluginManager().registerEvents(new ItemListener(itemManager), this);
     }
 
     @Override
@@ -75,22 +71,20 @@ public class ItemUpgrade extends JavaPlugin {
         // Plugin shutdown logic
     }
 
-    public static ItemUpgrade getInstance() {
-        return instance;
-    }
 
     public CommandManager getCommandManager() {
         return commandManager;
     }
 
-    public ItemsConfig getItemsConfig() {
+    public ItemsConfig config() {
         return itemsConfig;
     }
 
-    public void updateConfig(final @NotNull Consumer<CommentedConfigurationNode> consumer) {
-        consumer.accept(this.config);
+    public void updateConfig(final @NotNull ThrowingConsumer<CommentedConfigurationNode> consumer) {
         try {
+            consumer.accept(this.config);
             this.configurationLoader.save(this.config);
+            this.config = this.configurationLoader.load();
             this.itemsConfig = this.config.get(ItemsConfig.class);
         } catch (IOException e) {
             throw new RuntimeException(e);

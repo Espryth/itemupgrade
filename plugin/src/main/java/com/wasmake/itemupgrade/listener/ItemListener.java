@@ -1,28 +1,26 @@
 package com.wasmake.itemupgrade.listener;
 
-import com.wasmake.itemupgrade.ItemUpgrade;
-import com.wasmake.itemupgrade.items.ItemUpgradeConfig;
+import com.wasmake.itemupgrade.items.ItemManager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.List;
-import java.util.Map;
-
 public class ItemListener implements Listener {
+
+    private final ItemManager itemManager;
+
+    public ItemListener(final ItemManager itemManager) {
+        this.itemManager = itemManager;
+    }
+
     @EventHandler
-    public void onAnvilRename(PrepareAnvilEvent event) {
+    public void onAnvilRename(final PrepareAnvilEvent event) {
         ItemStack item = event.getInventory().getItem(0);
         if (item != null) {
-            Map<Integer, List<ItemUpgradeConfig>> items = ItemUpgrade.getInstance().getItemsConfig().items();
-            for (List<ItemUpgradeConfig> itemUpgradeConfigs : items.values()) {
-                for (ItemUpgradeConfig itemUpgradeConfig : itemUpgradeConfigs) {
-                    if (item.isSimilar(itemUpgradeConfig.item())) {
-                        event.setResult(null);
-                        return;
-                    }
-                }
+            final var upgrade = itemManager.asItemUpgrade(item);
+            if (upgrade != null) {
+                event.setResult(null);
             }
         }
     }

@@ -16,9 +16,9 @@ repositories {
 dependencies {
     api(project(":api"))
 
-    compileOnly("io.papermc.paper:paper-api:1.19.4-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
     // PAPER COMPLETE
-    paperweight.paperDevBundle("1.19.4-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.20.1-R0.1-SNAPSHOT")
 
     compileOnly("io.github.miniplaceholders:miniplaceholders-api:2.1.0")
 

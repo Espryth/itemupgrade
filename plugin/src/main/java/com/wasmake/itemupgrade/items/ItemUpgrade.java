@@ -4,8 +4,7 @@ import org.bukkit.inventory.ItemStack;
 import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 
 @ConfigSerializable
-public record ItemUpgradeConfig(
-    int level,
+public record ItemUpgrade(
     int cost,
     ItemStack item
 ) { }

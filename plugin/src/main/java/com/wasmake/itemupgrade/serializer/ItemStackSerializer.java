@@ -1,13 +1,13 @@
 package com.wasmake.itemupgrade.serializer;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Type;
-import net.kyori.adventure.text.Component;
-import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.enchantments.Enchantment;
-import org.bukkit.inventory.ItemFlag;
+import java.util.Base64;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.io.BukkitObjectInputStream;
+import org.bukkit.util.io.BukkitObjectOutputStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.serialize.SerializationException;
@@ -18,6 +18,24 @@ public class ItemStackSerializer implements TypeSerializer<ItemStack> {
     @Override
     public ItemStack deserialize(final Type type, final ConfigurationNode node) throws SerializationException {
 
+        final var str = node.getString();
+
+        if (str == null) {
+            return null;
+        }
+
+        try {
+            final var inputStream = new ByteArrayInputStream(Base64.getDecoder().decode(str));
+            final var dataInput = new BukkitObjectInputStream(inputStream);
+            final var itemStack = (ItemStack) dataInput.readObject();
+            dataInput.close();
+            return itemStack;
+        } catch (final ClassNotFoundException | IOException e) {
+            throw new SerializationException(e);
+        }
+
+        /*
+
         final var material = Material.matchMaterial(node.node("type")
             .getString(Material.BEDROCK.name()));
 
@@ -25,37 +43,33 @@ public class ItemStackSerializer implements TypeSerializer<ItemStack> {
             return new ItemStack(Material.BEDROCK);
         }
 
-        final var item = new ItemStack(material, node.node("amount").getInt(1));
+        var item = new ItemStack(material, node.node("amount").getInt(1));
 
-        final var itemMeta = item.getItemMeta();
+        final var customEnchants = node.node("custom-enchants").getList(String.class);
 
-        if (itemMeta == null) {
-            return item;
+        if (customEnchants != null) {
+            final var nmsItem = CraftItemStack.asNMSCopy(item);
+            final var compoundTag = nmsItem.getOrCreateTag();
+            for (final var enchantStr : customEnchants) {
+                final var split = enchantStr.split(":");
+                System.out.println("ENCHANT: " + split[0] + " " + split[1]);
+                compoundTag.put(split[0], IntTag.valueOf(Integer.parseInt(split[1])));
+            }
+            nmsItem.setTag(compoundTag);
+            item = CraftItemStack.asBukkitCopy(nmsItem);
         }
 
+        final var itemMeta = item.getItemMeta();
         final var displayName = node.node("display-name").get(Component.class);
+
         if (displayName != null) {
             itemMeta.displayName(displayName);
         }
 
         final var lore = node.node("lore").getList(Component.class);
+
         if (lore != null) {
             itemMeta.lore(lore);
-        }
-
-        final var nbtTags = node.node("nbt-tags").getList(String.class);
-        
-        if (nbtTags != null) {
-            final var persistentDataContainer = itemMeta.getPersistentDataContainer();
-            for (final var nbtTag : nbtTags) {
-                final var split = nbtTag.split(":");
-                persistentDataContainer.set(
-                    new NamespacedKey(split[0], split[1]),
-                    PersistentDataType.BYTE_ARRAY,
-                    new byte[] {}
-                );
-
-            }
         }
 
         final var enchants = node.node("enchantments").getList(String.class);
@@ -83,12 +97,31 @@ public class ItemStackSerializer implements TypeSerializer<ItemStack> {
             }
         }
 
+        item.setItemMeta(itemMeta);
         return item;
+
+         */
     }
 
     @Override
     public void serialize(Type type, @Nullable ItemStack obj, ConfigurationNode node) throws SerializationException {
 
+        if (obj == null) {
+            node.raw(null);
+            return;
+        }
+
+        try {
+            final var outputStream = new ByteArrayOutputStream();
+            final var dataOutput = new BukkitObjectOutputStream(outputStream);
+            dataOutput.writeObject(obj);
+            dataOutput.close();
+            node.set(Base64.getEncoder().encodeToString(outputStream.toByteArray()));
+        } catch (IOException e) {
+            throw new SerializationException(e);
+        }
+
+/*
         if (obj == null) {
             node.raw(null);
             return;
@@ -108,13 +141,6 @@ public class ItemStackSerializer implements TypeSerializer<ItemStack> {
                 node.node("lore").setList(Component.class, itemMeta.lore());
             }
 
-            final var persistentDataContainer = itemMeta.getPersistentDataContainer();
-            final var tags = persistentDataContainer.getKeys().stream().map(Object::toString).toList();
-
-            if (!tags.isEmpty()) {
-                node.node("nbt-tags").setList(String.class, tags);
-            }
-
             @SuppressWarnings("deprecation")
             final var enchants = itemMeta.getEnchants().entrySet().stream()
                 .map(entry -> entry.getKey().getName() + ":" + entry.getValue())
@@ -129,8 +155,24 @@ public class ItemStackSerializer implements TypeSerializer<ItemStack> {
             if (!flags.isEmpty()) {
                 node.node("flags").setList(String.class, flags);
             }
-
         }
 
+        final var nmsItem = CraftItemStack.asNMSCopy(obj);
+        final var compoundTag = nmsItem.getTag();
+        if (compoundTag != null) {
+            final var tags = new ArrayList<String>();
+            for (final var key : compoundTag.getAllKeys()) {
+                final var tag = compoundTag.get(key);
+                System.out.println("key: " + key + " tag: " + tag);
+                if (key.startsWith("ae_enchantment")) {
+                    System.out.println("ADDED " + tag.getType().getName());
+                    tags.add(key + ":" + tag.getAsString());
+                }
+            }
+            node.node("custom-enchants").set(tags);
+        }
+
+
+ */
     }
 }
